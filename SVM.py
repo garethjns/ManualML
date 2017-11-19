@@ -13,14 +13,18 @@ from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 
+from sklearn.model_selection import train_test_split as tts
+from sklearn.datasets import make_classification as mk
+
 
 #%% SVM class
 # Linear, classification
 class SVM():
-    def __init__(self):
+    def __init__(self, costThresh=0):
         self.results = {'mag': np.nan,
                        'w' : np.nan,
                        'b': np.nan}
+        self.params = {'costThresh':costThresh}
     
     def predict(self, x):
         if np.isnan(self.results['mag']):
@@ -124,20 +128,24 @@ class SVM():
                     test = False
                     
                     res = y*(np.dot(x,w*wt)+b)
-                    test = np.all(res>=1)
-                    cost = 1-np.sum(res>=1)/len(res) 
-                    test= cost<0.1
+                    if self.params['costThresh']==0:
+                        test = np.all(res>=1)
+                        cost = 0
+                    else:
+                        cost = 1-np.sum(res>=1)/len(res) 
+                        test= cost<self.params['costThresh']
+                    
                     # If a test succedes, test against best
                     if test:
                     # print('w:', w*wt, 'b', b, '=', test, np.all(test>0))                
                         if debug: print('Candidate:', w*wt, test)
-                        
+                        candidateFound = True
                         wMag = np.linalg.norm(w)+cost
                         if wMag<thisBest:
                             thisBest = wMag
                             thisWBest = w*wt
                             thisBBest = b
-                            candidateFound = True
+                            
                             if debug: print('New best', thisBest, 
                                             thisWBest, thisBBest)
                             
@@ -158,8 +166,12 @@ class SVM():
                 
                 if debug: 
                     print('Passed optimum point', incCount)
-                    
-            if incCount>1:
+            
+            # Only use inc count if overlap is none
+            # If there's overlap, caon't be sure if mag is increasing due
+            # to overlap or other side of function
+            # (mag is curretely ||w|| + cost)
+            if (incCount>2) & (cost==0):
                 stepsSaved = len(wRange)-np.argmax(wr==wRange)
                 print('Saved:', stepsSaved, 'w steps, (',
                       stepsSaved*len(bRange), 'its )')
@@ -197,7 +209,7 @@ if __name__ == "__main__":
     
     
 #%% Overlapping clusters
-# Doesn't work yet
+# Works with simple cost added, requires correct setting of cost thresh
 if __name__ == "__main__":
     
     x = np.array([
@@ -224,8 +236,37 @@ if __name__ == "__main__":
     y = np.array([-1, -1, -1, -1, -1, -1, -1, -1, -1, 
                   1, 1, 1, 1, 1, 1, 1, 1, 1])
     
-    mod = SVM()
+    mod = SVM(costThresh=0.3)
     mod = mod.fit(x, y, wStart=100, wStep=1)
     mod.plotDecision(x, y)
-    mod.plotDecision(x)  
+    mod.plotDecision(x)
+    
+#%% Generated
+
+if __name__ == '__main__':
+    
+    nF = 2
+    X,Y = data = mk(n_samples=600, 
+              n_features=nF, 
+              n_informative=2, 
+              n_redundant=0,
+              n_repeated=0, 
+              n_classes=2)
+    Y[Y==0]=-1
+    # X = pd.DataFrame(X, columns=['x'+str(x) for x in range(nF)])
+    # Y = pd.DataFrame(Y)
+    
+    XTrain, XValid, YTrain, YValid = tts(
+            X, Y, test_size=0.2, random_state=48)
+        
+    mod = SVM(costThresh=0.4)
+    mod = mod.fit(XTrain, YTrain)
+    mod.plotDecision(x, y)
+    mod.plotDecision(x)
+    
+    yPredTrain = mod.predict(XTrain)
+    yPredValid = mod.predict(XValid)
+    
+   
+#%%
     
