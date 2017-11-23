@@ -15,10 +15,46 @@ import pandas as pd
 #%%
 
 class Fs():
+    """
+    General functions
+    """
     @staticmethod
     def sigmoid(x):
         return 1/(1+np.exp(-x))
-
+    
+class Ks():
+    """
+    Kernels
+    """
+    def __init__(self, ty='linear', **kwargs):
+        self.params = dict([(key,value) for key, value in kwargs.items()])
+        self.kernelType = ty.lower()
+        
+    def __call__(self, x1, x2):
+        if self.kernelType.lower() == 'linear':
+            res = self. linear(x1, x2)
+        elif self.kernelType.lower() == 'polynomial':
+            res = self.polynomial(x1, x2)
+        return res
+        
+    def linear(self, x1, x2):
+        return np.dot(x1, x2)
+    
+    def polynomial(self, x1, x2):
+        
+        p = self.params.get('p', 2)
+         
+        return (1+np.dot(x1, x2)) ** p
+    
+    def gaussian(self, x1, x2):
+        sig = self.params.get('sigma', 3)
+        
+        return np.exp(-np.linalg.norm(x1-x2, axis=0)**2 / (2*(sig**2)))
+    
+    def RBF(self, x1, x2, gamma=1):
+        return np.exp(-gamma*np.abs(x1-x2)**2).squeeze()
+    
+    
 class Scales():
     """
     Normalisation methods
@@ -150,6 +186,21 @@ class MLHelpers():
             df = df.values.squeeze()
             
         return df.astype(np.float32)
+    
+    @staticmethod
+    def binClass01(Y):
+        for ci, c in enumerate(np.sort(np.unique(Y))):
+            Y[Y==c]=ci
+        return Y
+    
+    @staticmethod
+    def binClass1Minus1(Y):
+        ci = -3
+        for c in np.sort(np.unique(Y)):
+            ci+=2
+            Y[Y==c]=ci
+            
+        return Y
   
     
 #%% Test losses
@@ -176,4 +227,23 @@ if __name__ == "__main__":
     print('mse')
     print('Losses.mse:', np.sum(Losses.mse(Y, h)))
     print('Scikit:', mse(Y, h))
+
+
+#%% Test kernels
+
+if __name__ == "__main__":
+    
+    X = np.array([[1, 5],
+                  [2, 6],
+                  [3, 7],
+                  [4, 8],
+                  [5, 9],
+                  [6, 10],
+                  [7, 11]])
+    wt = np.array([-0.5, 0.5])
+    
+    print(Ks.linear(X, wt))
+    print(Ks.polynomial(X, wt))
+    print(Ks.gaussian(X, wt))
+    print(Ks.RBF(X, wt))
     
