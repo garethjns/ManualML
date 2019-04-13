@@ -1,4 +1,8 @@
-class MLHelpers():
+import pandas as pd
+import numpy as np
+
+
+class MLHelpers:
     def setNames(self, X):
         """
         Assuming self here is ML object - set featureNames property
