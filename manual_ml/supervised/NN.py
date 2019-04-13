@@ -68,7 +68,7 @@ class Network(MLHelpers, Losses):
         self.net = layerList
         self.nLayers = len(layerList)
         
-    def predict(self, x):
+    def predict(self, x, addBias=False):
         """
         Forward prop
         """
@@ -83,6 +83,7 @@ class Network(MLHelpers, Losses):
                                     self.net[li].act))
                 
             # Append bias on hidden layers
+            # Needs fixing
             if self.net[li+1].type == 'hidden':
                 self.net[li+1].act = np.append(
                                          np.ones(shape=(1, act.shape[1])), 

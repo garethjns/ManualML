@@ -35,8 +35,7 @@ class tree(MLHelpers, Losses):
                        'dynamicBias': dynamicBias,
                        'bias': bias}
         self.featureNames = []
-    
-        
+
     def print(self, nodes=[], root=True):
         
         if root==True:
