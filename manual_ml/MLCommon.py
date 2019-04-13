@@ -16,7 +16,7 @@ import pandas as pd
 
 class Fs():
     """
-    General functions
+    General helpers
     """
     @staticmethod
     def sigmoid(x):
@@ -97,7 +97,7 @@ class Scales():
 
 class Losses():
     """
-    Cost functions
+    Cost helpers
     """
     @staticmethod
     def mse(Y, YPred):
