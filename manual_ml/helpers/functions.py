@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class Regs():
     """
     Regularisation methods
@@ -10,10 +13,10 @@ class Regs():
         # Regularisation
         if (self.params['reg'].lower == 'l1') | \
                 (self.params['reg'].lower == 'lasso'):
-            reg = regs.LASSO(coeffs, self.params['lambda'])
+            reg = Regs.LASSO(coeffs, self.params['lambda'])
         elif (self.params['reg'].lower == 'l2') | \
                 (self.params['reg'].lower == 'ridge'):
-            reg = regs.ridge(coeffs, self.params['lambda'])
+            reg = Regs.ridge(coeffs, self.params['lambda'])
         else:
             reg = 1
 
@@ -85,9 +88,5 @@ class Fs():
 
     @staticmethod
     def softmax(x):
-        return (np.argmax(x, axis=1))
-
-
-
-
-
+        return (np.argmax(x,
+                          axis=1))

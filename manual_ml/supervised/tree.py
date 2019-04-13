@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Nov 12 16:18:55 2017
-
-@author: Gareth
-"""
-
-#%%
-
 import pandas as pd
 import numpy as np
 
@@ -15,16 +6,11 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split as tts
 from sklearn.datasets import make_classification as mk
 
-import importlib as il
-import MLCommon
-il.reload(MLCommon)
-
-from MLCommon import MLHelpers
+from manual_ml.base import MLHelpers
+from manual_ml.helpers.metrics import accuracy
 
 
-#%%
-
-class tree(MLHelpers, Losses):
+class Tree(MLHelpers):
     """
     Binary classification tree
     """
@@ -41,7 +27,7 @@ class tree(MLHelpers, Losses):
         if root==True:
             nodes = self.tree
             
-        tree.printNode(nodes)    
+        Tree.printNode(nodes)
         
         if nodes['Class']==-1:
             self.print(nodes=nodes['lNode'], root=False)
@@ -82,7 +68,7 @@ class tree(MLHelpers, Losses):
         X = self.stripDF(X)
         Y = self.stripDF(Y)
             
-        self.tree = tree.buildNodes(X, Y, 
+        self.tree = Tree.buildNodes(X, Y,
                                     maxDepth=self.params['maxDepth'],
                                     minData=self.params['minData'],
                                     dynamicBias=self.params['dynamicBias'],
@@ -96,7 +82,7 @@ class tree(MLHelpers, Losses):
                    debug=False):
 
         if dynamicBias==True:
-            bias = tree.prop(Y)
+            bias = Tree.prop(Y)
             dS = 'dynamic'
         else:
             if bias == '':
@@ -109,7 +95,7 @@ class tree(MLHelpers, Losses):
         # This label is set by highest represented label in subset
         if depth > maxDepth:
             # Too deep
-            cla =  tree.highClass(Y, bias)
+            cla =  Tree.highClass(Y, bias)
             node = {'Class': cla,
                     'depth': depth,
                     'note': 'Max depth reached, class is: '+ str(cla),
@@ -121,7 +107,7 @@ class tree(MLHelpers, Losses):
                 # Too few data points
                 cla = nomClass
             else:
-                cla = tree.highClass(Y, bias)
+                cla = Tree.highClass(Y, bias)
                 
             node = {'Class': cla,
                     'depth': depth,
@@ -133,7 +119,7 @@ class tree(MLHelpers, Losses):
             # So use nominal class that will be the opposite of the other side node
         elif X.shape[1]<1:
             # Too few features
-            cla = tree.highClass(Y, bias)
+            cla = Tree.highClass(Y, bias)
             node = {'Class' : cla,
                     'depth' : depth,
                     'note' : 'No features remaining, class is: '+ str(cla),
@@ -142,7 +128,7 @@ class tree(MLHelpers, Losses):
                     'nodeStr' : dStr}
         elif len(np.unique(Y)) == 1:
             # Only one class
-            cla = tree.highClass(Y, bias)
+            cla = Tree.highClass(Y, bias)
             node = {'Class' : cla,
                     'depth' : depth,
                     'note': 'One class at depth, class is: '+ str(cla),
@@ -151,7 +137,7 @@ class tree(MLHelpers, Losses):
                     'nodeStr' : dStr}
         else:
             # First find best split to run
-            colIdx, bestX, gini = tree.getBestSplitAll(X, Y)
+            colIdx, bestX, gini = Tree.getBestSplitAll(X, Y)
             # Convert integer index to logical
             # logIdx = np.array(range(X.shape[1]))==2
             
@@ -162,29 +148,29 @@ class tree(MLHelpers, Losses):
             nomClassL = -999
             nomClassR = -999
             if np.sum(lIdx)==0:
-                nomClassL = np.int8(not tree.highClass(Y[rIdx], bias))
+                nomClassL = np.int8(not Tree.highClass(Y[rIdx], bias))
             if np.sum(rIdx)==0:
-                nomClassR = np.int8(not tree.highClass(Y[lIdx], bias))
+                nomClassR = np.int8(not Tree.highClass(Y[lIdx], bias))
             
             # Build next node, leaving out used feaure and data not in this split
-            lNode = tree.buildNodes(X[lIdx][:,~colIdx], Y[lIdx], 
-                               maxDepth=maxDepth, 
-                               minData=minData, 
-                               depth=depth+1,
-                               nomClass=nomClassL, 
-                               dynamicBias=dynamicBias,
-                               bias=bias, 
-                               dStr=dStr+'->L',
-                               names = [n for ni,n in enumerate(names) if ni != np.argmax(colIdx)])
-            rNode = tree.buildNodes(X[rIdx][:,~colIdx], Y[rIdx], 
-                               maxDepth=maxDepth, 
-                               minData=minData, 
-                               depth=depth+1,
-                               nomClass=nomClassR, 
-                               dynamicBias=dynamicBias,
-                               bias=bias, 
-                               dStr=dStr+'->R',
-                               names = [n for ni,n in enumerate(names) if ni != np.argmax(colIdx)])
+            lNode = Tree.buildNodes(X[lIdx][:, ~colIdx], Y[lIdx],
+                                    maxDepth=maxDepth,
+                                    minData=minData,
+                                    depth=depth+1,
+                                    nomClass=nomClassL,
+                                    dynamicBias=dynamicBias,
+                                    bias=bias,
+                                    dStr=dStr+'->L',
+                                    names = [n for ni,n in enumerate(names) if ni != np.argmax(colIdx)])
+            rNode = Tree.buildNodes(X[rIdx][:, ~colIdx], Y[rIdx],
+                                    maxDepth=maxDepth,
+                                    minData=minData,
+                                    depth=depth+1,
+                                    nomClass=nomClassR,
+                                    dynamicBias=dynamicBias,
+                                    bias=bias,
+                                    dStr=dStr+'->R',
+                                    names = [n for ni,n in enumerate(names) if ni != np.argmax(colIdx)])
             
             # Return a full node containing meta/debug data
             # As this isn't a leaf/terminal node, set class to -1
@@ -200,22 +186,22 @@ class tree(MLHelpers, Losses):
                     'lNode': lNode,
                     'rNode': rNode,
                     'Class': -1,
-                    'propL': tree.prop(Y[lIdx]),
-                    'propR': tree.prop(Y[rIdx]),
+                    'propL': Tree.prop(Y[lIdx]),
+                    'propR': Tree.prop(Y[rIdx]),
                     'biasMode': dS,
                     'bias': bias,
                     'nodeStr' : dStr,
                     'terminal': False}
     
         if debug:
-            tree.printNode(node)
+            Tree.printNode(node)
             
         return node
     
     
     def predict(self, X):
         
-        yPred = X.apply(tree.predictStatic, args=(self.tree,), axis=1)
+        yPred = X.apply(Tree.predictStatic, args=(self.tree,), axis=1)
         
         return yPred
     
@@ -230,10 +216,10 @@ class tree(MLHelpers, Losses):
         # and follow tree
         if x.loc[mod['name']] < mod['splitVal']:
             # If less than split val, go left
-            yPred = tree.predictStatic(x, mod['lNode'])
+            yPred = Tree.predictStatic(x, mod['lNode'])
         else:
             # If greater than split val, go right
-            yPred = tree.predictStatic(x, mod['rNode'])
+            yPred = Tree.predictStatic(x, mod['rNode'])
             
         return yPred
     
@@ -268,7 +254,7 @@ class tree(MLHelpers, Losses):
     def split(X, Y, splitVal):
         groups = np.int8(X<splitVal)
         
-        return tree.gi(groups, Y)
+        return Tree.gi(groups, Y)
     
     @staticmethod
     def getBestSplitAll(X, Y):
@@ -283,7 +269,7 @@ class tree(MLHelpers, Losses):
             best = 1
             bestX = 0
             for x in np.unique(X[:,c]):
-                gini = tree.split(X[:,c], Y, x)
+                gini = Tree.split(X[:, c], Y, x)
                 if gini < best:
                     best = gini
                     bestX = x
@@ -313,86 +299,34 @@ class tree(MLHelpers, Losses):
         else:
             # Return logical of class prop>bias
             if len(Y)>0:
-                return np.int8(tree.prop(Y)>bias)
+                return np.int8(Tree.prop(Y) > bias)
             else: 
                 return 0
             
 
-        
-            
-#%% Small
 if __name__ == '__main__':
-    print('Test')
-    
-    data = pd.DataFrame({'X1': [2.77, 1.73, 3.68, 3.96, 2.99, 7.50, 9.00, 7.44, 
-                            10.12, 6.64],
-                    'X2': [1.78, 1.17, 2.81, 2.62, 2.21, 3.16, 3.34, 0.48, 
-                           3.23, 3.32],
-                    'Y': [1, 0, 0, 0, 0, 1, 1, 1, 0, 0]})
-    Y = data.Y
-    X = data.loc[:,['X1', 'X2']]
-    
-    mod = tree(maxDepth=2, minData=2, dynamicBias=False)        
-    mod = mod.fit(X, Y)
+    data = pd.DataFrame({'x1': [2.77, 1.73, 3.68, 3.96, 2.99, 7.50, 9.00, 7.44,
+                                10.12, 6.64],
+                         'x2': [1.78, 1.17, 2.81, 2.62, 2.21, 3.16, 3.34, 0.48,
+                                3.23, 3.32],
+                         'y': [1, 0, 0, 0, 0, 1, 1, 1, 0, 0]})
+    y = data.y
+    x = data[['x1', 'x2']]
+
+    mod = Tree(maxDepth=2,
+               minData=2,
+               dynamicBias=False)
+
+    mod = mod.fit(x, y)
     
     mod.print()
     
-    yPred = mod.predict(X)
-    mod.accuracy(Y, yPred)
+    y_pred = mod.predict(x)
+    accuracy(y, y_pred)
     
-    plt.scatter(data.X1[data.Y==0], data.X2[data.Y==0])
-    plt.scatter(data.X1[data.Y==1], data.X2[data.Y==1])
+    plt.scatter(data.X1[data.y == 0], data.X2[data.y == 0])
+    plt.scatter(data.X1[data.y == 1], data.X2[data.y == 1])
     plt.show()
-    plt.scatter(data.X1[yPred==0], data.X2[yPred==0])
-    plt.scatter(data.X1[yPred==1], data.X2[yPred==1])
+    plt.scatter(data.X1[y_pred == 0], data.x2[y_pred == 0])
+    plt.scatter(data.X1[y_pred == 1], data.x2[y_pred == 1])
     plt.show()
-   
-    
-#%% Banknote
-if __name__ == '__main__':
-    data = pd.read_csv('data_banknote_authentication.txt', header=None)
-    data.columns = ['x'+str(x) for x in range(4)]+list('Y')
-    data.head()
-    
-    X = data.loc[:,['x'+str(x) for x in range(4)]]
-    Y = data.loc[:,'Y']
-    XTrain, XValid, YTrain, YValid = tts(
-        X, Y, test_size=0.25, random_state=512)
-    
-    mod = tree(minData=10, maxDepth=6, 
-               dynamicBias=False, bias=0.5)
-    mod = mod.fit(XTrain, YTrain)
-    mod.print()
-    yPredTrain = mod.predict(XTrain)
-    yPredValid = mod.predict(XValid)
-    
-    mod.accuracy(yPredTrain, YTrain)
-    mod.accuracy(yPredValid, YValid)
-
-
-#%% Generated
-
-if __name__ == '__main__':
-    
-    nF = 30
-    X,Y = data = mk(n_samples=600, 
-              n_features=nF, 
-              n_informative=20, 
-              n_redundant=5,
-              n_repeated=0, 
-              n_classes=2)
-    X = pd.DataFrame(X, columns=['x'+str(x) for x in range(nF)])
-    Y = pd.DataFrame(Y)
-    
-    XTrain, XValid, YTrain, YValid = tts(
-            X, Y, test_size=0.2, random_state=48)
-        
-    mod = tree(minData=10, maxDepth=10, 
-               dynamicBias=False, bias=0.5)
-    mod = mod.fit(XTrain, YTrain)
-    mod.print()
-    yPredTrain = mod.predict(XTrain)
-    yPredValid = mod.predict(XValid)
-    
-    mod.accuracy(YTrain, yPredTrain)
-    mod.accuracy(YValid, yPredValid)

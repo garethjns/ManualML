@@ -1,20 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Nov 26 19:25:05 2017
-
-@author: Gareth
-"""
-
-#%% Imports
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt 
 
-import importlib as il
-import MLCommon
-il.reload(MLCommon)
-from MLCommon import Fs, MLHelpers, Losses
+from manual_ml.base import MLHelpers
+from manual_ml.helpers.metrics import accuracy
+from manual_ml.helpers.functions import Fs
 
 from sklearn.preprocessing import OneHotEncoder as OH
 from numpy import transpose as t
@@ -22,11 +12,14 @@ from numpy import transpose as t
 from sklearn.model_selection import train_test_split as tts
 
 
-#%% Classes
-
 class Layer(Fs):
-    def __init__(self, inUnits=2, outUnits=2, name='', ipt=False,
-          act=Fs.sigmoid, dAct=Fs.dSigmoid):
+    def __init__(self,
+                 inUnits=2,
+                 outUnits=2,
+                 name='',
+                 ipt=False,
+                 act=Fs.sigmoid,
+                 dAct=Fs.dSigmoid):
         
         if ipt==True:
             ty = 'Input'
@@ -59,7 +52,7 @@ class Layer(Fs):
         return self
     
     
-class Network(MLHelpers, Losses):
+class Network(MLHelpers):
     def __init__(self, layerList):
         
         # for li in np.arange(len(layerList)-1, 0, -1):
@@ -89,8 +82,6 @@ class Network(MLHelpers, Losses):
                                          np.ones(shape=(1, act.shape[1])), 
                                          act, axis=0)
         return self
-    
-
     
     def fit(self, x, y, its=100):
         
@@ -125,17 +116,14 @@ class Network(MLHelpers, Losses):
                     
                     self.net[li].u += u
                     self.net[li].d += d
-            
-            
+
         # Update
         for li in range(0,self.nLayers):
             self.net[li].w -= self.LR*self.net[li].u
-            
-            
+
         return self
                     
-    
-    def predictProba():
+    def predictProba(self):
         pass
     
     
@@ -145,7 +133,7 @@ if __name__ == '__main__':
     from sklearn.datasets import make_classification as mk
     
     nF = 4
-    X,Y = data = mk(n_samples=100, 
+    X, Y = data = mk(n_samples=100,
               n_features=nF, 
               n_informative=3, 
               n_redundant=0,

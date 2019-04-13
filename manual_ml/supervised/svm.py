@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Nov 19 14:19:27 2017
-
-@author: garet
-"""
-
-#%% Imports
-
 import numpy as np
 import pandas as pd
 
@@ -17,15 +8,18 @@ from itertools import product
 from sklearn.model_selection import train_test_split as tts
 from sklearn.datasets import make_classification as mk
 
-import importlib as il
-import MLCommon
-il.reload(MLCommon)
-from MLCommon import MLHelpers, Losses, Ks
+from manual_ml.base import MLHelpers
+from manual_ml.helpers.kernels import Ks
+from manual_ml.helpers.metrics import accuracy
 
 
-#%% SVM class
-# Linear, classification
-class SVM(MLHelpers, Losses):
+class SVM(MLHelpers):
+    """
+    SVM Class.
+
+    Linear, classification.
+    """
+
     def __init__(self, kernel=Ks('Linear'), **kwargs):
         self.results = {'mag': np.nan,
                        'w' : np.nan,
@@ -308,7 +302,7 @@ if __name__ == "__main__":
     mod.plotDecision(x)
     
     yPred = mod.predict(x)
-    mod.accuracy(y, yPred)
+    accuracy(y, yPred)
     
     
 #%% Basic 2D test
@@ -330,7 +324,7 @@ if __name__ == "__main__":
     mod.plotDecision(x)
     
     yPred = mod.predict(x)
-    mod.accuracy(y, yPred)
+    accuracy(y, yPred)
     
     mod.plotContour(x,y)
     
@@ -355,7 +349,7 @@ if __name__ == "__main__":
     mod.plotDecision(x)
     
     yPred = mod.predict(x)
-    mod.accuracy(y, yPred)
+    accuracy(y, yPred)
         
     mod.plotContour(x,y)
     
@@ -431,24 +425,5 @@ if __name__ == '__main__':
     yPredTrain = mod.predict(XTrain, m1=False)
     yPredValid = mod.predict(XValid, m1=False)
     
-    print('Train acc:', mod.accuracy(YTrain, yPredTrain))
-    print('Valid acc:', mod.accuracy(YValid, yPredValid))
-   
-    
-#%%
-
-X1 = np.linspace(x[:,d1].min(), x[:,d1].max(), 50)
-X2 = np.linspace(x[:,d2].min(), x[:,d2].max(), 50)
-
-X = np.array([[x1, x2] for x1, x2 in zip(np.ravel(X1), np.ravel(X2))])
-
-Z = mod.predictProba(X)
-Z = Z.reshape(X1.shape)
-
-
-plt.contour(X1, X2, Z-1, colours='b')
-plt.contour(X1, X2, Z, colours='k')
-plt.contour(X1, X2, Z+1, colours='b')
-plt.scatter(x[y==1,d1], x[y==1,d2], c='r')
-plt.scatter(x[y==-1,d1], x[y==-1,d2], c='b')
-plt.show()
+    print('Train acc:', accuracy(YTrain, yPredTrain))
+    print('Valid acc:', accuracy(YValid, yPredValid))
