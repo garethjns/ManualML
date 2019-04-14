@@ -101,7 +101,7 @@ class LinReg(ParametricModel):
             b_grad = learning_rate * 2 / n * np.sum((y - h))
 
             # Update regularised gradients
-            coefs = coefs + m_grad + reg
+            coefs = coefs + m_grad #+ reg
             b = b + b_grad
 
             # Check for convergence
@@ -134,15 +134,15 @@ if __name__ == '__main__':
 
     mod = LinReg(learning_rate=0.01,
                  max_its=1000,
-                 reg='l2')
-    mod = mod.fit(x, y,
-                  debug=True)
+                 reg=None)
+    mod.fit(x, y,
+            debug=True)
     mod.plot_history(log=True)
 
     y_pred = mod.predict(x)
     plt.scatter(y, y_pred)
-    plt.xlabel('y')
     plt.xlabel('y_pred')
+    plt.ylabel('y')
     plt.show()
 
     print(mod.results['coefs'], mod.results['b'])
