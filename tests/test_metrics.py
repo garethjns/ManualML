@@ -7,7 +7,7 @@ from typing import Callable
 
 
 class RunTests:
-    def run_a(self, baseline_f: Callable, test_f: Callable) -> None:
+    def run_with_error_checks(self, baseline_f: Callable, test_f: Callable) -> None:
         """
 
         :param baseline_f: Presumed correct function.
@@ -38,12 +38,12 @@ class TestBinary(RunTests, unittest.TestCase):
                     ([1, 1, 1, 1, 1], [1, 1, 1, 1])]
 
     def test_accuracy(self) -> None:
-        self.run_a(baseline_f=skm.accuracy_score,
-                   test_f=mlm.accuracy)
+        self.run_with_error_checks(baseline_f=skm.accuracy_score,
+                                   test_f=mlm.accuracy)
 
     def test_log_loss(self) -> None:
-        self.run_a(baseline_f=skm.log_loss,
-                   test_f=mlm.log_loss)
+        self.run_with_error_checks(baseline_f=skm.log_loss,
+                                   test_f=mlm.log_loss)
 
 
 class TestProba(RunTests, unittest.TestCase):
@@ -57,8 +57,8 @@ class TestProba(RunTests, unittest.TestCase):
                     ([1, 1, 1, 1, 1], [1, 1, 1, 1])]
 
     def test_mse(self) -> None:
-        self.run_a(baseline_f=skm.mean_squared_error,
-                   test_f=mlm.mse)
+        self.run_with_error_checks(baseline_f=skm.mean_squared_error,
+                                   test_f=mlm.mse)
 
 
 if __name__ == "__main__":
