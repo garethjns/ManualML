@@ -1,166 +1,148 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Nov 14 12:38:49 2017
-
-@author: garet
-"""
-
-#%% Imports
-
 import numpy as np
 import pandas as pd
 
+from typing import Dict, List, Any, Union
+
 import matplotlib.pyplot as plt
 
-import importlib as il
-import MLCommon
-il.reload(MLCommon)
-
-from MLCommon import MLHelpers, Scales, Losses, Regs
+from manual_ml.base import ParametricModel
+from manual_ml.helpers.metrics import mse
+from manual_ml.helpers.scaling import feature_scale, standard_score
 
 
-#%% Linear regression
-       
-class LinReg(MLHelpers, Scales, Regs, Losses):
-    def __init__(self, LR=1, maxIts=100, reg='L2', a=0.1, norm=False,
-                 LRDecay=0, convThresh=0.00001, convSteps=3):
-        self.params = {'LR': LR,
-                       'maxIts': maxIts,
+class LinReg(ParametricModel):
+    def __init__(self,
+                 learning_rate: int =1,
+                 max_its: int=100,
+                 reg: str='l2',
+                 a: float=0.1,
+                 norm: bool=False,
+                 lr_decay=0,
+                 conv_thresh=0.00001,
+                 conv_steps=3):
+        """
+        Linear regression using gradient descent.
+
+        :param learning_rate: Initial learning rate.
+        :param max_its: Maximum number of iterations - can be inf.
+        :param reg: Regularisation type, either 'l1' or 'l2'.
+        :param a: Regularisation strength.
+        :param norm: Apply normalisation on current data before fitting or predicting. Doesn't learn from training set,
+                     so not ideal, but convenient.
+        :param lr_decay: Learning rate decay, %.
+        :param conv_thresh: Minimum reduction in error rate before stopping.
+        :param conv_steps: How many iterations with error rate reduction < conv_thresh before stopping.
+        """
+
+        self.params = {'learning_rate': learning_rate,
+                       'max_its': max_its,
                        'reg': reg,
-                       'lambda': a, 
+                       'lambda': a,
                        'norm': norm,
-                       'LRDecay': LRDecay, # PC on each step
-                       'convThresh': convThresh, # PC
-                       'convSteps': convSteps
-                       }
-        self.featureNames = []
-        
-        
-    def fit(self, X, Y, debug=False):
-        
-        maxIts = self.params['maxIts']
-        LR = self.params['LR']
-        convThresh = self.params['convThresh']
-        convSteps = self.params['convSteps']
-        LRDecay = self.params['LRDecay']
-        
+                       'lr_decay': lr_decay,  # PC on each step
+                       'conv_thresh': conv_thresh,  # PC
+                       'conv_steps': conv_steps}
+
+        self.feature_names: List[str] = []
+        self.results: Dict[str, Any]
+
+    def fit(self, x: Union[np.ndarray, pd.DataFrame], y: Union[np.ndarray, pd.DataFrame],
+            debug: bool=False) -> None:
+        """
+        Fit model.
+
+        :param x: Features.
+        :param y: Labels.
+        :param debug: If true, print information on each iteration.
+        """
+
+        max_its = self.params['max_its']
+        learning_rate = self.params['learning_rate']
+        conv_thresh = self.params['conv_thresh']
+        conv_steps = self.params['conv_steps']
+        lr_decay = self.params['lr_decay']
+
         # Set feature names
-        self = self.setNames(X)
-        
+        self.set_names(x)
+
         # Convert to mats if not
-        X = self.stripDF(X)
-        Y = self.stripDF(Y)
-        
+        x = self.strip_df(x)
+        y = self.strip_df(y)
+
         # Norm?
-        X = self.norm(X)
-        
+        if self.params['norm']:
+            x = standard_score(x)
+
         # Initialise coeffs
         b = 0
-        coeffs = np.random.normal(0,1, size=(X.shape[1]))
-        n = X.shape[0]
-        
-        history = np.zeros(shape=(maxIts))
-        
+        coefs = np.random.normal(0, 1,
+                                  size=(x.shape[1]))
+        n = x.shape[0]
+
         stop = 0
-        i=-1
-        while (stop<convSteps) and (i<(maxIts-1)):
-            i+=1
-            
-            # Recalc LR
-            LR = LR - LR*LRDecay
-            
-            h = np.matmul(X, coeffs) + b
-            loss = self.mse(Y, h)
-            history[i] = loss
-            
+        i = -1
+        history = []
+        while (stop < conv_steps) and (i < (max_its-1)):
+            i += 1
+
+            # Update learning_rate
+            learning_rate = learning_rate - learning_rate * lr_decay
+
+            # Make predictions and get loss
+            h = np.matmul(x, coefs) + b
+            loss = mse(y, h)
+            history.append(loss)
+
             # Apply regularisation
-            reg = self.reg(coeffs)
-            # reg=1
-            
-            # Calculate gradients   
-            mGrad = LR * 2/n * (np.matmul(np.transpose(X), Y-h))
-            bGrad = LR * 2/n * np.sum((Y-h))
-            
-            # Update gradients
-            coeffs = coeffs + mGrad*reg
-            b = b+bGrad
-            
+            reg = self.reg(coefs, n)
+
+            # Calculate gradients
+            m_grad = learning_rate * 2 / n * (np.matmul(np.transpose(x), y - h))
+            b_grad = learning_rate * 2 / n * np.sum((y - h))
+
+            # Update regularised gradients
+            coefs = coefs + m_grad + reg
+            b = b + b_grad
+
             # Check for convergence
-            if i>0:
-                if np.abs(1-history[i]/history[i-1]) < convThresh:
-                    stop+=1
+            if i > 0:
+                if np.abs(1 - history[i] / history[i-1]) < conv_thresh:
+                    stop += 1
                 else:
-                    stop=0
-                    
-            # Print iteration info        
-            if debug:
-                print('Iteration:', i, 'loss='+str(loss), '@ LR='+str(LR))
-                if stop > 0:
-                    print('Converging:', 
-                          str(stop)+'/'+str(convSteps))
-                
-        results = {'coeffs': coeffs,
+                    stop = 0
+
+        # Print iteration info
+        if debug:
+            print(f'Iteration {i}: loss={loss} @ learning_rate={learning_rate}')
+            if stop > 0:
+                print(f'Converging: {stop}/{conv_steps}')
+
+        results = {'coefs': coefs,
                    'b': b,
                    'loss': loss,
-                   'history': history[0:i],
-                   'converged': stop>convSteps,
+                   'history': history,
+                   'converged': stop > conv_steps,
                    'atStep': i}
-        
+
         self.results = results
-        return self
-    
-        
-    def predict(self, X):
-        
-        if type(X) == pd.DataFrame:
-            X = X.values
-            
-        m = self.results['coeffs']
-        b = self.results['b']
-        
-        return np.matmul(X, m) + b
-    
-    
-    def plotHistory(self):
-        plt.plot(self.results['history'])
-        plt.ylabel('loss')
-        plt.xlabel('Iteration')
-        plt.show()
-  
-    
-#%%     
-   
-if __name__== '__main__':
-    
-    # y = 2*x0 + 3*x1 + 1
-    
-    X = np.array([[1, 1], [2, 2], [2, 1]])
-    Y = 2*X[:,0] + 3*X[:,1] + 1
-    
-    mod = LinReg(LR=0.1, maxIts=10000, reg='L2')
-    mod = mod.fit(X, Y, debug=True)
-    mod.plotHistory()
-    
-    yPred = mod.predict(X)
-    
-    print(mod.results['coeffs'], mod.results['b'])
-    
-    
-#%% Test
 
-if __name__== '__main__':
-    from sklearn.datasets import load_boston
-    
-    
-    boston = load_boston()
-    X = boston['data']
-    Y = boston['target']
-    
-    mod = linReg(LR=0.5, maxIts=100000, norm='FS', LRDecay=0.00005, reg='L1')
-    mod = mod.fit(X, Y, debug=True)
-    mod.plotHistory()
 
-    yPred = mod.predict(X)
-    
-    plt.scatter(Y,yPred)
-    
+if __name__ == '__main__':
+
+    x = np.array([[1, 1], [2, 2], [2, 1], [1, 2], [3, 3], [3, 2]])
+    y = 2 * x[:, 0] + 3 * x[:, 1] + 1
+
+    mod = LinReg(learning_rate=0.01,
+                 max_its=1000,
+                 reg='l2')
+    mod = mod.fit(x, y,
+                  debug=True)
+    mod.plot_history(log=True)
+
+    y_pred = mod.predict(x)
+    plt.scatter(y, y_pred)
+    plt.xlabel('y')
+    plt.xlabel('y_pred')
+    plt.show()
+
+    print(mod.results['coefs'], mod.results['b'])
