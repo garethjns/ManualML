@@ -4,7 +4,7 @@ import numpy as np
 
 
 class Regs:
-    def reg(self, coeffs: np.ndarray) -> float:
+    def reg(self, coeffs: np.ndarray, n: int) -> float:
         """
         Calculate regularisation value.
 
@@ -12,11 +12,14 @@ class Regs:
         :return: Regularisation value.
         """
         # Regularisation
-        if (self.params['reg'].lower == 'l1') | (self.params['reg'].lower == 'lasso'):
-            reg = lasso(coeffs, self.params['lambda'])
+        if self.params['reg'] is not None:
+            if (self.params['reg'].lower() == 'l1') | (self.params['reg'].lower == 'lasso'):
+                reg = lasso(coeffs, self.params['lambda'],
+                            n=n)
 
-        elif (self.params['reg'].lower == 'l2') | (self.params['reg'].lower == 'ridge'):
-            reg = ridge(coeffs, self.params['lambda'])
+            elif (self.params['reg'].lower() == 'l2') | (self.params['reg'].lower() == 'ridge'):
+                reg = ridge(coeffs, self.params['lambda'],
+                            n=n)
 
         else:
             # Off
@@ -26,7 +29,8 @@ class Regs:
 
 
 def ridge(coeffs: np.ndarray,
-          a: int =1) -> float:
+          a: int=1,
+          n: int=1) -> float:
     """
     Ridge / L2 regularization.
 
@@ -35,11 +39,12 @@ def ridge(coeffs: np.ndarray,
     :param coeffs: Model coefficients.
     :return: Regularisation value.
     """
-    return a * np.sum(coeffs ** 2)
+    return coeffs ** 2 * a / n
 
 
-def lasso(coeffs: np.narray,
-          a: int=1) -> float:
+def lasso(coeffs: np.ndarray,
+          a: int=1,
+          n: int=1) -> float:
     """
     Least Absolute Shrinkage and Selection Operator. / L1 reg regularization.
 
@@ -48,4 +53,4 @@ def lasso(coeffs: np.narray,
     :param coeffs: Model coefficients.
     :return: Regularisation value.
     """
-    return a * np.sum(coeffs)
+    return coeffs * a / n
