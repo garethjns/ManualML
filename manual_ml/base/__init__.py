@@ -60,6 +60,7 @@ class ParametricModel(BaseModel, Regs):
                                                               self.results['coefs'])])
         else:
             return "Unfit model."
+
     def feature_importance(self):
         pd.DataFrame(self.coefs,
                      columns=self.feature_names)

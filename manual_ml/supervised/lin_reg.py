@@ -90,19 +90,18 @@ class LinReg(ParametricModel):
 
             # Make predictions and get loss
             h = np.matmul(x, coefs) + b
-            loss = mse(y, h)
+            # Get reg value
+            reg = self.reg(coefs, n)
+            loss = mse(y, h) + reg
             history.append(loss)
 
-            # Apply regularisation
-            reg = self.reg(coefs, n)
-
             # Calculate gradients
-            m_grad = learning_rate * 2 / n * (np.matmul(np.transpose(x), y - h))
-            b_grad = learning_rate * 2 / n * np.sum((y - h))
+            m_grad = learning_rate * 1 / n * (np.matmul(np.transpose(x), y - h) + self.params['lambda'] / n * coefs)
+            b_grad = learning_rate * 1 / n * np.sum((y - h))
 
-            # Update regularised gradients
-            coefs = coefs + m_grad #+ reg
-            b = b + b_grad
+            # Update gradients
+            coefs += m_grad
+            b += b_grad
 
             # Check for convergence
             if i > 0:
@@ -111,11 +110,11 @@ class LinReg(ParametricModel):
                 else:
                     stop = 0
 
-        # Print iteration info
-        if debug:
-            print(f'Iteration {i}: loss={loss} @ learning_rate={learning_rate}')
-            if stop > 0:
-                print(f'Converging: {stop}/{conv_steps}')
+            # Print iteration info
+            if debug:
+                print(f'Iteration {i}: loss={loss} @ learning_rate={learning_rate}')
+                if stop > 0:
+                    print(f'Converging: {stop}/{conv_steps}')
 
         results = {'coefs': coefs,
                    'b': b,
@@ -134,10 +133,12 @@ if __name__ == '__main__':
 
     mod = LinReg(learning_rate=0.01,
                  max_its=1000,
-                 reg=None)
+                 a=1,
+                 reg='l1')
     mod.fit(x, y,
             debug=True)
     mod.plot_history(log=True)
+    print(mod.results['coefs'])
 
     y_pred = mod.predict(x)
     plt.scatter(y, y_pred)
