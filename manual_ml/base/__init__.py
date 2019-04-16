@@ -62,8 +62,10 @@ class ParametricModel(BaseModel, Regs):
             return "Unfit model."
 
     def feature_importance(self):
-        pd.DataFrame(self.coefs,
-                     columns=self.feature_names)
+        abs_coefs = np.abs(self.results['coefs'])
+        return pd.DataFrame({'mag': abs_coefs,
+                             'mag_norm': abs_coefs / np.sum(abs_coefs)},
+                            index=self.feature_names)
 
     def predict(self, x: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
 

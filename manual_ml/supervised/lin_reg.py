@@ -147,3 +147,6 @@ if __name__ == '__main__':
     plt.show()
 
     print(mod.results['coefs'], mod.results['b'])
+
+    print(mod.feature_importance())
+    
