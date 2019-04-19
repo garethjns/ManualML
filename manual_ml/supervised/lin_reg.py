@@ -121,7 +121,7 @@ class LinReg(ParametricModel):
                    'loss': loss,
                    'history': history,
                    'converged': stop > conv_steps,
-                   'atStep': i}
+                   'at_step': i}
 
         self.results = results
 
@@ -149,4 +149,3 @@ if __name__ == '__main__':
     print(mod.results['coefs'], mod.results['b'])
 
     print(mod.feature_importance())
-    

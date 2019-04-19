@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from manual_ml.base import ParametricModel
 
-from manual_ml.helpers.metrics import log_loss
+from manual_ml.helpers.metrics import log_loss, accuracy
 from manual_ml.helpers.functions import Fs
 from manual_ml.helpers.regularization import Regs
 from manual_ml.helpers.scaling import standard_score
@@ -13,14 +13,14 @@ from manual_ml.helpers.scaling import standard_score
 
 class LogReg(ParametricModel, Regs, Fs):
     def __init__(self,
-                 learning_rate=1,
-                 max_its=100,
-                 reg='l2',
-                 a=0.1,
-                 norm=False,
-                 learning_rate_decay=0,
-                 conv_thresh=0.00001,
-                 conv_steps=12):
+                 learning_rate: float=1,
+                 max_its: int=100,
+                 reg: str=None,
+                 a: float=0.1,
+                 norm: bool=False,
+                 learning_rate_decay: float=0,
+                 conv_thresh: float=0.00001,
+                 conv_steps: int=6):
 
         self.params = {'learning_rate': learning_rate,
                        'max_its': max_its,
@@ -42,7 +42,7 @@ class LogReg(ParametricModel, Regs, Fs):
         learning_rate_decay = self.params['learning_rate_decay']
 
         # Set feature names
-        self = self.set_names(x)
+        self.set_names(x)
 
         # Convert to mats if not
         x = self.strip_df(x)
@@ -67,15 +67,14 @@ class LogReg(ParametricModel, Regs, Fs):
             learning_rate = learning_rate - learning_rate * learning_rate_decay
 
             h = self.sigmoid(np.matmul(x, coefs) + b)
-            loss = log_loss(y, h)
+            # Get reg value
+            reg = self.reg(coefs, n)
+            loss = log_loss(y, h) + reg
             history.append(loss)
 
-            # Apply regularisation
-            reg = self.reg(coefs)
-
             # Calculate gradients
-            m_grad = learning_rate * (np.matmul(np.transpose(x), y - h))
-            b_grad = learning_rate * np.sum(b * (y - h))
+            m_grad = learning_rate * 1 / n * (np.matmul(np.transpose(x), y - h) + self.params['lambda'] / n * coefs)
+            b_grad = learning_rate * 1 / n * np.sum(b * (y - h))
 
             # Update gradients
             coefs = coefs + m_grad * reg
@@ -99,127 +98,61 @@ class LogReg(ParametricModel, Regs, Fs):
                    'loss': loss,
                    'history': history,
                    'converged': stop > conv_steps,
-                   'atStep': i}
+                   'at_step': i}
 
         self.results = results
+
         return self
 
+    def predict_proba(self, x):
+        return super().predict(x)
+
     def predict(self, x):
-        return self.sigmoid(super().predict(x))
+        proba = self.predict_proba(x)
+        return (proba > np.mean(proba)).astype(int)
 
 
-if __name__== '__main__':
+if __name__ == '__main__':
 
-    X = np.array([[1, 1], [2, 2], [2, 1]])
-    Y = np.array([0, 1, 1])
+    X = np.array([[1, 1], [2, 2], [2, 1], [0, 1]])
+    Y = np.array([0, 1, 1, 0])
 
-    mod = LogReg(learning_rate=0.01,
+    mod = LogReg(learning_rate=0.1,
                  max_its=10000,
-                 reg='L1',
+                 reg=None,
                  norm=True)
-    mod = mod.fit(X, Y, debug=True)
+    mod.fit(X, Y,
+            debug=True)
     mod.plot_history()
 
     y_pred = mod.predict(X)
 
-    # print(mod.results['coeffs'], mod.results['b'])
-    mod.print()
-    accuracy(Y, y_pred, 1)
+    print(mod)
 
-#%% Test
+    accuracy(Y, y_pred)
 
-if __name__== '__main__':
-    from sklearn.datasets import load_boston
-
-    boston = load_boston()
-    X = boston['data']
-    Y = boston['target']
-
-    mod = linReg(LR=0.5, maxIts=100000, norm='FS', LRDecay=0.00005, reg='L1')
-    mod = mod.fit(X, Y, debug=True)
-    mod.plot_history()
-
-    yPred = mod.predict(X)
-
-    plt.scatter(Y,yPred)
-
-
-#%% Banknote
-if __name__ == '__main__':
-    from sklearn.model_selection import train_test_split as tts
-
-
-    data = pd.read_csv('data_banknote_authentication.txt', header=None)
-    data.columns = ['x'+str(x) for x in range(4)]+list('Y')
-    data.head()
-
-    X = data.loc[:,['x'+str(x) for x in range(4)]]
-    Y = data.loc[:,'Y']
-    XTrain, XValid, YTrain, YValid = tts(
-        X, Y, test_size=0.25, random_state=512)
-
-    mod = LogReg(learning_rate=0.01, max_its=100000, norm='FS', learning_rate_decay=0.005, reg='L2')
-    mod = mod.fit(XTrain, YTrain, debug=True)
-    mod.print()
-    yPredTrain = mod.predict(XTrain)
-    yPredValid = mod.predict(XValid)
-
-    mod.accuracy(yPredTrain, YTrain, p=0)
-    mod.accuracy(yPredValid, YValid, p=0)
-
-#%% Generated
-
-if __name__ == '__main__':
-
-    nF = 30
-    X,Y = data = mk(n_samples=600,
-              n_features=nF,
-              n_informative=20,
-              n_redundant=5,
-              n_repeated=0,
-              n_classes=2)
-    X = pd.DataFrame(X, columns=['x'+str(x) for x in range(nF)])
+    from sklearn.model_selection import train_test_split
+    from sklearn.datasets import make_blobs
+    X, Y = data = make_blobs(n_samples=600,
+                             n_features=30,
+                             centers=2)
+    X = pd.DataFrame(X, columns=['x_'+str(x) for x in range(X.shape[1])])
     Y = pd.DataFrame(Y)
 
-    XTrain, XValid, YTrain, YValid = tts(
-            X, Y, test_size=0.2, random_state=48)
+    x_train, x_test, y_train, y_test = train_test_split(X, Y,
+                                                        test_size=0.2,
+                                                        random_state=48)
 
-    mod = LogReg(learning_rate=0.01, max_its=100000, norm='FS', learning_rate_decay=0.005, reg='L2')
-    mod = mod.fit(XTrain, YTrain)
+    mod = LogReg(learning_rate=0.01,
+                 max_its=100000,
+                 norm=True,
+                 learning_rate_decay=0.005,
+                 reg='l1')
+    mod = mod.fit(x_train, y_train)
 
-    mod.print()
-    yPredTrain = mod.predict(XTrain)
-    yPredValid = mod.predict(XValid)
+    print(mod)
+    y_pred_train = mod.predict(x_train)
+    y_pred_test = mod.predict(x_test)
 
-    mod.accuracy(YTrain, yPredTrain)
-    mod.accuracy(YValid, yPredValid)
-
-
-#%% Titanic
-if __name__ == "__main__":
-
-    train = pd.read_csv('titanic_train_PPed.csv')
-    test = pd.read_csv('titanic_test_PPed.csv')
-
-    Y = train.Survived
-    X = train.loc[:,['Pclass', 'Sex', 'Adult', 'Title']]
-    XTest = test.loc[:,['Pclass', 'Sex', 'Adult', 'Title']]
-
-    XTrain, XValid, YTrain, YValid = tts(
-        X, Y, test_size=0.33, random_state=47)
-
-    mod = LogReg(learning_rate=0.00001, max_its=100000, norm='SS', learning_rate_decay=0.00001, reg='L2')
-    mod = mod.fit(XTrain, YTrain, debug=True)
-
-    yPredTrain = mod.predict(XTrain)
-    yPredValid = mod.predict(XValid)
-    yPredTest = mod.predict(XTest)
-
-    mod.accuracy(YTrain, yPredTrain, 1)
-    mod.accuracy(YValid, yPredValid, 1)
-
-    sub = pd.DataFrame()
-    sub['PassengerId'] = test['PassengerId']
-    sub['Survived'] = np.int32(yPredTest)
-    sub.to_csv('manualLogReg.csv', index=False)
-
+    accuracy(y_train.values, y_pred_train)
+    accuracy(y_test.values, y_pred_test)

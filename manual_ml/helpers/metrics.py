@@ -17,9 +17,9 @@ def log_loss(y_true: Iterable, y_pred: Iterable) -> float:
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
 
-    if ~(len(np.unique(y_true)) > 1):
+    if len(np.unique(y_true)) > 2:
         # Not handling this case, raise error.
-        raise ValueError("~(len(np.unique(y_true)) > 1)")
+        raise ValueError("(len(np.unique(y_true)) > 2)")
 
     return 1 / len(y_true) * np.sum(-y_true * np.log(y_pred) - (1 - y_true) * np.log(1 - y_pred))
 
@@ -32,9 +32,9 @@ def accuracy(y_true: Iterable, y_pred: Iterable) -> float:
         raise ValueError("len(y_true) != len(y_pred)")
 
     y_true = np.array(y_true,
-                      dtype=int)
+                      dtype=int).squeeze()
     y_pred = np.array(y_pred,
-                      dtype=int)
+                      dtype=int).squeeze()
 
     acc = np.sum(y_true == y_pred) / len(y_true)
 
