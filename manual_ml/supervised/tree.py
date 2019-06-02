@@ -1,15 +1,11 @@
-import pandas as pd
-import numpy as np
+from typing import List, Tuple, Union, Dict, Any
 
 import matplotlib.pyplot as plt
-
-from sklearn.model_selection import train_test_split as tts
-from sklearn.datasets import make_classification as mk
+import numpy as np
+import pandas as pd
 
 from manual_ml.base import BaseModel
 from manual_ml.helpers.metrics import accuracy
-
-from typing import List, Tuple, Union
 
 
 class Tree(BaseModel):
@@ -26,6 +22,8 @@ class Tree(BaseModel):
                        'dynamic_bias': dynamic_bias,
                        'bias': bias}
         self.feature_names = []
+
+        self.tree: Dict[str, Any] = None
 
     def _print(self,
                nodes: List[str]=None,
@@ -98,6 +96,22 @@ class Tree(BaseModel):
                     bias: float=0.5,
                     d_str: str= 'Root',
                     debug: bool=False):
+        """
+        Recursively all branches of nodes. Each branch continues adding nodes until a terminal condition is met.
+
+        :param x: Features.
+        :param y: Labels.
+        :param names: Feature column names.
+        :param max_depth: Max branch depth. Default=2.
+        :param min_data: Min number of observations left to build another node. Default=2.
+        :param dynamic_bias:
+        :param depth: Current depth.
+        :param nom_class:
+        :param bias:
+        :param d_str: String name for node.
+        :param debug:
+        :return:
+        """
 
         if dynamic_bias:
             bias = Tree.prop(y)
@@ -112,7 +126,7 @@ class Tree(BaseModel):
         # If a terminal node, return a node (dict) containing just the class label
         # This label is set by highest represented label in subset
         if depth > max_depth:
-            # Too deep
+            # Too deep: Terminal
             cla = Tree.high_class(y, bias)
             node = {'class': cla,
                     'depth': depth,
@@ -123,7 +137,7 @@ class Tree(BaseModel):
 
         elif x.shape[0] < min_data:
             if x.shape[0] == 0:
-                # Too few data points
+                # Too few data points: Terminal
                 cla = nom_class
             else:
                 cla = Tree.high_class(y, bias)
@@ -138,7 +152,7 @@ class Tree(BaseModel):
             # So use nominal class that will be the opposite of the other side node
 
         elif x.shape[1] < 1:
-            # Too few features
+            # Too few features: Terminal
             cla = Tree.high_class(y, bias)
             node = {'class': cla,
                     'depth': depth,
@@ -148,7 +162,7 @@ class Tree(BaseModel):
                     'node_str': d_str}
 
         elif len(np.unique(y)) == 1:
-            # Only one class
+            # Only one class: Terminal
             cla = Tree.high_class(y, bias)
             node = {'class': cla,
                     'depth': depth,
@@ -157,12 +171,12 @@ class Tree(BaseModel):
                     'n': len(x),
                     'node_str': d_str}
         else:
+            # Not terminal. Build next node.
+
             # First find best split to run
             col_idx, best_x, gini = Tree.get_best_split_all(x, y)
-            # Convert integer index to logical
-            # logIdx = np.array(range(x.shape[1]))==2
 
-            # Split in to left and right subsets
+            # Split into left and right subsets
             l_idx = (x[:, col_idx] < best_x).squeeze()
             r_idx = (x[:, col_idx] >= best_x).squeeze()
 
@@ -173,11 +187,11 @@ class Tree(BaseModel):
             if np.sum(r_idx) == 0:
                 nom_class_r = np.int8(not Tree.high_class(y[l_idx], bias))
 
-            # Build next node, leaving out used feaure and data not in this split
+            # Build next node, leaving out used feature and data not in this split
             l_node = Tree.build_nodes(x[l_idx][:, ~col_idx], y[l_idx],
                                       max_depth=max_depth,
                                       min_data=min_data,
-                                      depth=depth+1,
+                                      depth=depth + 1,
                                       nom_class=nom_class_l,
                                       dynamic_bias=dynamic_bias,
                                       bias=bias,
@@ -187,7 +201,7 @@ class Tree(BaseModel):
             r_node = Tree.build_nodes(x[r_idx][:, ~col_idx], y[r_idx],
                                       max_depth=max_depth,
                                       min_data=min_data,
-                                      depth=depth+1,
+                                      depth=depth + 1,
                                       nom_class=nom_class_r,
                                       dynamic_bias=dynamic_bias,
                                       bias=bias,
@@ -221,6 +235,7 @@ class Tree(BaseModel):
         return node
 
     def predict(self, x) -> np.ndarray:
+        """Predict from tree."""
 
         y_pred = x.apply(Tree._predict,
                          args=(self.tree,),
