@@ -72,10 +72,12 @@ class TestBreastCancer(Models, unittest.TestCase):
                                                             test_size=0.25,
                                                             random_state=512)
 
-        cls.x_train = pd.DataFrame(x_train)
-        cls.x_test = pd.DataFrame(x_test)
+        cls.x_train = pd.DataFrame(x_train,
+                                   columns=[str(c) for c in range(x_test.shape[1])])
+        cls.x_test = pd.DataFrame(x_test,
+                                  columns=[str(c) for c in range(x_test.shape[1])])
         cls.y_train = pd.Series(y_train)
-        cls.y_tes = pd.Series(y_test)
+        cls.y_test = pd.Series(y_test)
 
         cls.mod = Tree(min_data=10,
                        max_depth=6,
